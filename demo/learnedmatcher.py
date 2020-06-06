@@ -99,8 +99,8 @@ class LearnedMatcher(object):
             e_hat = torch.matmul(torch.matmul(T2.transpose(0,1), e_hat.reshape(3,3)),T1).reshape(-1,9)
             F = (e_hat / torch.norm(e_hat, dim=1, keepdim=True)).reshape(3,3)
             inlier_idx = np.where(y > self.default_config.inlier_threshold)
-         
-        if len(inlier_idx)<8:
+     
+        if len(inlier_idx[0])<8:
             inlier_idx=np.argpartition(-y,8)[:8]
         matches=corr[inlier_idx]
         if not self.fundamental:

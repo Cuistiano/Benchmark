@@ -3,16 +3,11 @@ import numpy as np
 import argparse
 import os
 import glob
-import time
-#import pymagsac
-import pyransac
 from tqdm import tqdm
 from joblib import Parallel, delayed
 from functools import partial
-from io_util import load_h5, save_h5,pose_auc
-from learnedmatcher import LearnedMatcher
+from util import load_h5, save_h5,pose_auc,quaternion_from_matrix
 import cv2
-from io_util import quaternion_from_matrix
 from tqdm import tqdm
 
 def str2bool(v):
@@ -21,8 +16,8 @@ def str2bool(v):
 parser = argparse.ArgumentParser(description='eval for ransac_workshop')
 parser.add_argument('--dataset_path', type=str, default='/data1/zjh/RANSAC-Tutorial-Data-EF/RANSAC-Tutorial-Data/val/',
   help='datapath_corr.')
-parser.add_argument('--dump_path',type=str,default='old_essential',help='dump matches and estimeted F/E')
-parser.add_argument('--fundamental',type=str2bool,default=False,help='dump matches and estimeted F/E')
+parser.add_argument('--dump_path',type=str,default='fundamental_val_bi',help='dump matches and estimeted F/E')
+parser.add_argument('--fundamental',type=str2bool,default=True,help='dump matches and estimeted F/E')
 
 
 def evaluate_R_t(R_gt, t_gt, R, t):
@@ -72,18 +67,16 @@ if __name__=="__main__":
     for seq in seqs:
         print('---'+str(seq)+'---')
         e_es_path=os.path.join(args.dump_path,seq,'E_post.h5' if not args.fundamental else 'F_post.h5')
-        e_gt_path=os.path.join(args.dataset_path,seq,'Egt.h5')
         intrinsic_path = os.path.join(args.dataset_path,seq,'K1_K2.h5')
 
         R_path,T_path=os.path.join(args.dataset_path,seq,'R.h5'),os.path.join(args.dataset_path,seq,'T.h5')
         corr_es_path=os.path.join(args.dump_path,seq,'corr_post.h5')
-        e_gt,e_es,R,T,corr_es,K=load_h5(e_gt_path),load_h5(e_es_path),load_h5(R_path),load_h5(T_path),load_h5(corr_es_path),load_h5(intrinsic_path)
+        e_es,R,T,corr_es,K=load_h5(e_es_path),load_h5(R_path),load_h5(T_path),load_h5(corr_es_path),load_h5(intrinsic_path)
         key_list=list(e_es.keys())
         
         for key in tqdm(key_list):
             img1,img2=key.split('-')[0],key.split('-')[1]
             cur_e_es,R1,R2,T1,T2=np.asarray(e_es[key]),np.asarray(R[img1]),np.asarray(R[img2]),np.asarray(T[img1]),np.asarray(T[img2])
-            cur_e_gt=np.asarray(e_gt[key])
             K1,K2=np.asarray(K[key][0,0]),np.asarray(K[key][0,1])
             cur_corr=corr_es[key]
             dR=np.matmul(R2,R1.T)

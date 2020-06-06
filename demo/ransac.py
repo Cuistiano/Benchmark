@@ -80,7 +80,7 @@ if __name__ == "__main__":
         intrinsic_path = os.path.join(args.dataset_path,seq,'K1_K2.h5')
 
         corrs,sides,intrinsics = load_h5(corr_path),load_h5(side_path),None if args.use_fundamental else load_h5(intrinsic_path)
-        key_list=list(corrs.keys()) 
+        key_list=list(corrs.keys())
         matches_dict = {}
         match_fun = partial(compute_matches, matcher=matcher, post_estimator=post_estimator)   
         

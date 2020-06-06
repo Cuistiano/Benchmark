@@ -76,11 +76,11 @@ class LearnedMatcher(object):
         with torch.no_grad():
             corr=torch.from_numpy(corr).to(self.device).float()
             sides=torch.from_numpy(sides).to(self.device).float()
-            K1,K2=torch.from_numpy(K1).to(self.device).float(),torch.from_numpy(K2).to(self.device).float()
             if self.fundamental:
                 x1, T1 = self.normalize_kpts(corr[:,:2])
                 x2, T2 = self.normalize_kpts(corr[:,2:4])
             else:
+                K1,K2=torch.from_numpy(K1).to(self.device).float(),torch.from_numpy(K2).to(self.device).float()
                 x1,x2=self.normalize_intrinsic(corr[:,:2],K1),self.normalize_intrinsic(corr[:,2:4],K2)
                 T1, T2 =torch.eye(3).to(self.device),torch.eye(3).to(self.device)
             norm_corr, sides = torch.cat([x1,x2],dim=-1).unsqueeze(0).unsqueeze(0), sides.unsqueeze(0)
@@ -99,11 +99,13 @@ class LearnedMatcher(object):
             e_hat = torch.matmul(torch.matmul(T2.transpose(0,1), e_hat.reshape(3,3)),T1).reshape(-1,9)
             F = (e_hat / torch.norm(e_hat, dim=1, keepdim=True)).reshape(3,3)
             inlier_idx = np.where(y > self.default_config.inlier_threshold)
-                
+         
+        if len(inlier_idx)<8:
+            inlier_idx=np.argpartition(-y,8)[:8]
         matches=corr[inlier_idx]
-        #print(matches.shape,corr.shape)
         if not self.fundamental:
             matches=norm_corr.reshape(-1,4)[inlier_idx]
+
         return matches,F.cpu().numpy(),y
 
 

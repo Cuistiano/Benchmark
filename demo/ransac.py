@@ -3,12 +3,11 @@ import numpy as np
 import argparse
 import os
 import glob
-import time
 import pyransac
 from tqdm import tqdm
 from joblib import Parallel, delayed
 from functools import partial
-from io_util import load_h5, save_h5
+from util import load_h5, save_h5
 from learnedmatcher import LearnedMatcher
 
 def str2bool(v):
@@ -55,13 +54,9 @@ parser.add_argument('--num_cores', type=int, default=4,
 def compute_matches(matcher,post_estimator,corr,sides,K1=None,K2=None):
     matches,E_hat,logits = matcher.infer(corr,sides,K1,K2)
     matches=matches.cpu().numpy()
-    if len(matches)>=8:
-        E_post, mask = post_estimator(matches[:,:2], matches[:,2:4])
-        matches_post = matches[mask,:]
-    else:
-        E_post=np.oness((3,3)).astype(np.double)
-        matches_post=np.ones((1,4)).astype(np.double)
-            
+    E_post, mask = post_estimator(matches[:,:2], matches[:,2:4])
+    matches_post = matches[mask,:]
+
     E_hat=E_hat/np.linalg.norm(E_hat)
     E_post=E_post/np.linalg.norm(E_post)
 
@@ -84,13 +79,13 @@ if __name__ == "__main__":
         side_path=os.path.join(args.dataset_path,seq,'match_conf.h5')
         intrinsic_path = os.path.join(args.dataset_path,seq,'K1_K2.h5')
 
-        corrs,sides,intrinsics = load_h5(corr_path),load_h5(side_path),load_h5(intrinsic_path)
+        corrs,sides,intrinsics = load_h5(corr_path),load_h5(side_path),None if args.use_fundamental else load_h5(intrinsic_path)
         key_list=list(corrs.keys()) 
         matches_dict = {}
         match_fun = partial(compute_matches, matcher=matcher, post_estimator=post_estimator)   
         
         results = Parallel(n_jobs=args.num_cores)(delayed(match_fun)(
-            corr=np.asarray(corrs[key]),sides=np.asarray(sides[key]) ,K1=np.asarray(intrinsics[key])[0,0],K2=np.asarray(intrinsics[key])[0,1]) for key in tqdm(key_list))
+            corr=np.asarray(corrs[key]),sides=np.asarray(sides[key]) ,K1=None if args.use_fundamental else np.asarray(intrinsics[key])[0,0],K2=None if args.use_fundamental else np.asarray(intrinsics[key])[0,1]) for key in tqdm(key_list))
         
         #form dict_to_save
         dictsave_corr_post,dictsave_e_post,dictsave_corr,dictsave_e_weighted,dictsave_score={},{},{},{},{}

@@ -1,6 +1,7 @@
 import numpy as np
 import h5py
 import cv2
+import torch
 
 def write_keypoints(path, keypoints):
 	# path: path to save
@@ -149,3 +150,17 @@ def pose_auc(errors, thresholds):
         e = np.r_[errors[:last_index], t]
         aucs.append(np.trapz(r, x=e)/t)
     return aucs
+
+
+def batch_episym(x1, x2, F):
+    batch_size, num_pts = x1.shape[0], x1.shape[1]
+    x1 = torch.cat([x1, x1.new_ones(batch_size, num_pts,1)], dim=-1).reshape(batch_size, num_pts,3,1)
+    x2 = torch.cat([x2, x2.new_ones(batch_size, num_pts,1)], dim=-1).reshape(batch_size, num_pts,3,1)
+    F = F.reshape(-1,1,3,3).repeat(1,num_pts,1,1)
+    x2Fx1 = torch.matmul(x2.transpose(2,3), torch.matmul(F, x1)).reshape(batch_size,num_pts)
+    Fx1 = torch.matmul(F,x1).reshape(batch_size,num_pts,3)
+    Ftx2 = torch.matmul(F.transpose(2,3),x2).reshape(batch_size,num_pts,3)
+    ys = x2Fx1**2 * (
+            1.0 / (Fx1[:, :, 0]**2 + Fx1[:, :, 1]**2 + 1e-15) +
+            1.0 / (Ftx2[:, :, 0]**2 + Ftx2[:, :, 1]**2 + 1e-15))
+    return ys

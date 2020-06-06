@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from loss import batch_episym
+from util import batch_episym
 
 class AttentiveContextNorm(nn.Module):
     def __init__(self, channels, local_or_global=True, head=1):

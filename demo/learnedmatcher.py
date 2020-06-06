@@ -6,7 +6,6 @@ import glob
 from tqdm import tqdm
 from collections import namedtuple
 import sys
-sys.path.append('../core')
 from oan import OANet
 
         

@@ -16,8 +16,8 @@ def str2bool(v):
 parser = argparse.ArgumentParser(description='eval for ransac_workshop')
 parser.add_argument('--dataset_path', type=str, default='/data1/zjh/RANSAC-Tutorial-Data-EF/RANSAC-Tutorial-Data/val/',
   help='datapath_corr.')
-parser.add_argument('--dump_path',type=str,default='essential_val',help='dump matches and estimeted F/E')
-parser.add_argument('--fundamental',type=str2bool,default=False,help='dump matches and estimeted F/E')
+parser.add_argument('--dump_path',type=str,default='fundamental_ransac',help='dump matches and estimeted F/E')
+parser.add_argument('--fundamental',type=str2bool,default=True,help='dump matches and estimeted F/E')
 
 
 def evaluate_R_t(R_gt, t_gt, R, t):
@@ -70,7 +70,7 @@ if __name__=="__main__":
         intrinsic_path = os.path.join(args.dataset_path,seq,'K1_K2.h5')
 
         R_path,T_path=os.path.join(args.dataset_path,seq,'R.h5'),os.path.join(args.dataset_path,seq,'T.h5')
-        corr_es_path=os.path.join(args.dump_path,seq,'corr_post.h5')
+        corr_es_path=os.path.join(args.dump_path,seq,'corr_th.h5')
         e_es,R,T,corr_es,K=load_h5(e_es_path),load_h5(R_path),load_h5(T_path),load_h5(corr_es_path),load_h5(intrinsic_path)
         key_list=list(e_es.keys())
         

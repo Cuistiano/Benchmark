@@ -4,6 +4,7 @@ import argparse
 import os
 import glob
 import pyransac
+import cv2
 from tqdm import tqdm
 from joblib import Parallel, delayed
 from functools import partial
@@ -51,12 +52,18 @@ parser.add_argument('--use_cpu', type=str2bool, default=False,
 parser.add_argument('--num_cores', type=int, default=4,
   help='nums for parallel')
 
-def compute_matches(matcher,post_estimator,corr,sides,K1=None,K2=None):
+def compute_matches(args,matcher,post_estimator,corr,sides,K1=None,K2=None):
     matches,E_hat,logits = matcher.infer(corr,sides,K1,K2)
     matches=matches.cpu().numpy()
+    #for fundamental ransac
+    if args.use_fundamental:
+        matches=(matches - np.asarray([K1[0, 2], K1[1, 2],K2[0,2],K2[1,2]]))* np.asarray([1/K1[0, 0], 1/K1[1, 1],1/K2[0,0],1/K2[1,1]])
     E_post, mask = post_estimator(matches[:,:2], matches[:,2:4])
+    if args.use_fundamental:
+        E_post=np.matmul(np.linalg.inv(K2).T,np.matmul(E_post,np.linalg.inv(K1)))
+        matches=matches* np.asarray([K1[0, 0], K1[1, 1],K2[0,0],K2[1,1]])+np.asarray([K1[0, 2], K1[1, 2],K2[0,2],K2[1,2]])
     matches_post = matches[mask,:]
-
+    #E_post,matches_post=np.ones(1).astype(np.double),np.ones(1).astype(np.double)
     E_hat=E_hat/np.linalg.norm(E_hat)
     E_post=E_post/np.linalg.norm(E_post)
 
@@ -67,8 +74,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     seqs = os.listdir(args.dataset_path)
     matcher = LearnedMatcher(args.model_path, args.net_depth, args.clusters, args.bottleneck, args.cat, args.inlier_th,args.use_ratio,args.use_mutual, use_cpu=args.use_cpu, use_bipartite=args.use_bipartite,fundamental=args.use_fundamental)
-
-    post_estimator = partial(pyransac.findFundamentalMatrix, px_th=args.ransac_th, max_iters = args.ransac_iter)
+    #if args.use_fundamental:
+        #post_estimator = partial(pyransac.findFundamentalMatrix, px_th=args.ransac_th, max_iters = args.ransac_iter)
+    #else:
+        #post_estimator=partial(cv2.findEssentialMat,method=cv2.RANSAC,threshold=1e-3)
+    post_estimator=partial(cv2.findEssentialMat,method=cv2.RANSAC,threshold=1e-3)
     if not os.path.exists(args.dump_path):
         os.mkdir(args.dump_path)
     for seq in seqs:
@@ -79,13 +89,13 @@ if __name__ == "__main__":
         side_path=os.path.join(args.dataset_path,seq,'match_conf.h5')
         intrinsic_path = os.path.join(args.dataset_path,seq,'K1_K2.h5')
 
-        corrs,sides,intrinsics = load_h5(corr_path),load_h5(side_path),None if args.use_fundamental else load_h5(intrinsic_path)
+        corrs,sides,intrinsics = load_h5(corr_path),load_h5(side_path),load_h5(intrinsic_path)
         key_list=list(corrs.keys())
         matches_dict = {}
-        match_fun = partial(compute_matches, matcher=matcher, post_estimator=post_estimator)   
+        match_fun = partial(compute_matches,args=args, matcher=matcher, post_estimator=post_estimator)   
         
         results = Parallel(n_jobs=args.num_cores)(delayed(match_fun)(
-            corr=np.asarray(corrs[key]),sides=np.asarray(sides[key]) ,K1=None if args.use_fundamental else np.asarray(intrinsics[key])[0,0],K2=None if args.use_fundamental else np.asarray(intrinsics[key])[0,1]) for key in tqdm(key_list))
+            corr=np.asarray(corrs[key]),sides=np.asarray(sides[key]) ,K1=np.asarray(intrinsics[key])[0,0] if args.use_fundamental else np.asarray(intrinsics[key])[0,0],K2=np.asarray(intrinsics[key])[0,1] if args.use_fundamental else np.asarray(intrinsics[key])[0,1]) for key in tqdm(key_list))
         
         #form dict_to_save
         dictsave_corr_post,dictsave_e_post,dictsave_corr,dictsave_e_weighted,dictsave_score={},{},{},{},{}

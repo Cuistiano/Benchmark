@@ -16,8 +16,8 @@ def str2bool(v):
 parser = argparse.ArgumentParser(description='eval for ransac_workshop')
 parser.add_argument('--dataset_path', type=str, default='/data1/zjh/RANSAC-Tutorial-Data-EF/RANSAC-Tutorial-Data/val/',
   help='datapath_corr.')
-parser.add_argument('--dump_path',type=str,default='fundamental_val_bi',help='dump matches and estimeted F/E')
-parser.add_argument('--fundamental',type=str2bool,default=True,help='dump matches and estimeted F/E')
+parser.add_argument('--dump_path',type=str,default='essential_val',help='dump matches and estimeted F/E')
+parser.add_argument('--fundamental',type=str2bool,default=False,help='dump matches and estimeted F/E')
 
 
 def evaluate_R_t(R_gt, t_gt, R, t):
@@ -86,7 +86,7 @@ if __name__=="__main__":
                 cur_corr=(cur_corr-np.asarray([K1[0,2],K1[1,2],K2[0,2],K2[1,2]]))/np.asarray([K1[0,0],K1[1,1],K2[0,0],K2[1,1]])
             err_q,err_t=eval_essential_matrix(cur_corr[:,:2],cur_corr[:,2:4],cur_e_es,dR,dT)
             err_q_list.append(err_q),err_t_list.append(err_t)
-            print(err_q*180/np.pi,err_t*180/np.pi)
+            #print(err_q*180/np.pi,err_t*180/np.pi)
         
     ths = np.arange(7) * 5
     err_q = np.array(err_q_list) * 180.0 / np.pi

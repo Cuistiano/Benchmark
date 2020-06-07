@@ -14,12 +14,12 @@ def str2bool(v):
     return v.lower() in ("true", "1")
 # Parse command line arguments.
 parser = argparse.ArgumentParser(description='match for ransac_workshop')
-parser.add_argument('--dataset_path', type=str, default='/data1/zjh/RANSAC-Tutorial-Data-EF/RANSAC-Tutorial-Data/val/',
+parser.add_argument('--dataset_path', type=str, default='your_dataset_path',
   help='datapath_corr.')
 parser.add_argument('--dump_path',type=str,default='old_fundamental',help='dump matches and estimeted F/E')
 
 '''network config'''
-parser.add_argument('--model_path', type=str, default='/home/jhzhang/IMW2020/OANet-Net2/core/log/main.py/train/model_best.pth',
+parser.add_argument('--model_path', type=str, default='../model/essential/model_best.pth',
   help='pretrained model path')
 parser.add_argument('--inlier_th', type=float, default=1,
   help='inlier threshold for network output')

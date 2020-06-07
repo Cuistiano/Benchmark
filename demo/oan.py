@@ -183,21 +183,6 @@ class diff_unpool(nn.Module):
         S = torch.softmax(embed*self.temp, dim=1).squeeze(3)# b*k*n
         out = torch.matmul(x_down.squeeze(3), S).unsqueeze(3)
         return out
-'''
-class diff_unpool2(nn.Module):
-    def __init__(self):
-        nn.Module.__init__(self)
-    def forward(self, x_up, x_down):
-        #x_up: b*c*n*1
-        #x_down: b*c*k*1
-        #embed = self.conv(x_up)# b*k*n*1
-        #S = torch.softmax(embed, dim=1).squeeze(3)# b*k*n
-        #out = torch.matmul(x_down.squeeze(3), S).unsqueeze(3)
-        x_up = 
-        S = torch.softmax(torch.matmul(x_up.squeeze(3).transpose(1,2), x_down.squeeze(3)), dim=1)
-        out = torch.matmul(S.transpose())
-        return out
-'''
 
 
 class OANBlock(nn.Module):

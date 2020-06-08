@@ -87,14 +87,9 @@ class LearnedMatcher(object):
             data = {}
             data['xs'] =norm_corr
             data['sides'] = sides.unsqueeze(-1)
-            
+        
             y_hat, e_hat = self.model(data)
             y, e_hat = y_hat[-1][0, :].cpu().numpy(), e_hat[-1]
-            if self.use_bipartite:
-                data['xs'] = data['xs'][:,:,:, [2,3,0,1]]
-                y_hat2, e_hat2 = self.model(data)
-                y2 = y_hat2[-1][0, :].cpu().numpy()
-                y = np.minimum(y, y2)
 
             e_hat = torch.matmul(torch.matmul(T2.transpose(0,1), e_hat.reshape(3,3)),T1).reshape(-1,9)
             F = (e_hat / torch.norm(e_hat, dim=1, keepdim=True)).reshape(3,3)

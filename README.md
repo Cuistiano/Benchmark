@@ -1,10 +1,8 @@
 # Requirements
 Please use Python 3.6, opencv-contrib-python (3.4.0.12) and Pytorch (>= 1.1.0). 
 
-For DEGENSAC(https://github.com/vcg-uvic/image-matching-benchmark):
-```
-pip install git+https://github.com/ducha-aiki/pyransac
-```
+We use DEGENSAC from https://github.com/ducha-aiki/pyransac
+
 Other dependencies should be easily installed through pip or conda.
 
 # Example
@@ -21,3 +19,4 @@ There are five files for each test sequence, <br/>
 In most cases, 'E/F_post' are the most precise.
 
 For the parsing and evaluation, please refer to demo/eval_ef.py
+

@@ -36,12 +36,12 @@ parser.add_argument('--use_ratio', type=int, default=2,
   help='use ratio test in network')
 parser.add_argument('--use_mutual', type=int, default=0,
   help='use mutual check in network')
-parser.add_argument('--use_bipartite', type=str2bool, default=False,
-  help='use bipartite in network')
 parser.add_argument('--use_fundamental',type=str2bool,default=True,
   help='estimate fundamental')
 
 '''ransac config'''
+parser.add_argument('--post_estimator',type=int,default=0,
+        help='post estimator, 0:DEGENSAC(for F), 1:RANSAC')
 parser.add_argument('--ransac_th', type=float, default=0.75,
   help='inlier threshold (px) in RANSAC variants')
 parser.add_argument('--ransac_iter', type=int, default=100000,
@@ -56,14 +56,13 @@ def compute_matches(args,matcher,post_estimator,corr,sides,K1=None,K2=None):
     matches,E_hat,logits = matcher.infer(corr,sides,K1,K2)
     matches=matches.cpu().numpy()
     #for fundamental ransac
-    if args.use_fundamental:
+    if args.use_fundamental and args.post_estimator==1:
         matches=(matches - np.asarray([K1[0, 2], K1[1, 2],K2[0,2],K2[1,2]]))* np.asarray([1/K1[0, 0], 1/K1[1, 1],1/K2[0,0],1/K2[1,1]])
     E_post, mask = post_estimator(matches[:,:2], matches[:,2:4])
-    if args.use_fundamental:
+    if args.use_fundamental and args.post_estimator==1:
         E_post=np.matmul(np.linalg.inv(K2).T,np.matmul(E_post,np.linalg.inv(K1)))
         matches=matches* np.asarray([K1[0, 0], K1[1, 1],K2[0,0],K2[1,1]])+np.asarray([K1[0, 2], K1[1, 2],K2[0,2],K2[1,2]])
     matches_post = matches[mask,:]
-    #E_post,matches_post=np.ones(1).astype(np.double),np.ones(1).astype(np.double)
     E_hat=E_hat/np.linalg.norm(E_hat)
     E_post=E_post/np.linalg.norm(E_post)
 
@@ -73,12 +72,14 @@ def compute_matches(args,matcher,post_estimator,corr,sides,K1=None,K2=None):
 if __name__ == "__main__":
     args = parser.parse_args()
     seqs = os.listdir(args.dataset_path)
-    matcher = LearnedMatcher(args.model_path, args.net_depth, args.clusters, args.bottleneck, args.cat, args.inlier_th,args.use_ratio,args.use_mutual, use_cpu=args.use_cpu, use_bipartite=args.use_bipartite,fundamental=args.use_fundamental)
-    #if args.use_fundamental:
-        #post_estimator = partial(pyransac.findFundamentalMatrix, px_th=args.ransac_th, max_iters = args.ransac_iter)
-    #else:
-        #post_estimator=partial(cv2.findEssentialMat,method=cv2.RANSAC,threshold=1e-3)
-    post_estimator=partial(cv2.findEssentialMat,method=cv2.RANSAC,threshold=1e-3)
+    matcher = LearnedMatcher(args.model_path, args.net_depth, args.clusters, args.bottleneck, args.cat, args.inlier_th,args.use_ratio,args.use_mutual, use_cpu=args.use_cpu,fundamental=args.use_fundamental)
+    if args.post_estimator==0:
+        post_estimator = partial(pyransac.findFundamentalMatrix, px_th=args.ransac_th, max_iters = args.ransac_iter)
+    elif args.post_estimator==1:
+        post_estimator=partial(cv2.findEssentialMat,method=cv2.RANSAC,threshold=1e-3)
+    else:
+        raise NotImplementedError
+    
     if not os.path.exists(args.dump_path):
         os.mkdir(args.dump_path)
     for seq in seqs:
